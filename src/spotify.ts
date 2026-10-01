@@ -67,6 +67,8 @@ type Player = {
   connect(): Promise<boolean>;
   pause(): Promise<void>;
   togglePlay(): Promise<void>;
+  seek(positionMs: number): Promise<void>;
+  getCurrentState(): Promise<{ position: number; duration: number } | null>;
   activateElement(): Promise<void>;
   addListener(event: string, cb: (data: { device_id: string; message: string }) => void): void;
 };
@@ -121,6 +123,8 @@ export async function play(song: Song, positionMs = 0): Promise<void> {
 
 export const pause = async (): Promise<void> => player?.pause();
 export const togglePlay = async (): Promise<void> => player?.togglePlay();
+export const seek = async (positionMs: number): Promise<void> => player?.seek(positionMs);
+export const getPosition = async (): Promise<number | null> => (await player?.getCurrentState())?.position ?? null;
 
 // --- Playlists ---
 

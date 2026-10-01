@@ -7,9 +7,11 @@ import {
   findOrCreateTop100,
   getLikedSongs,
   getPlaylistIndex,
+  getPosition,
   initPlayer,
   pause,
   play,
+  seek,
   setPlaylistItems,
   togglePlay,
   type Playlist,
@@ -39,6 +41,7 @@ let started = false; // browsers only allow audio after a first click
 let playing: string | null = null;
 let paused = false;
 let seq = 0;
+let seeking = false; // the user is dragging a slider; don't move it under their finger
 
 const save = () => localStorage.setItem(KEY, JSON.stringify(state));
 const savePlaylists = () => localStorage.setItem(PLAYLISTS_KEY, JSON.stringify(playlists));
@@ -46,6 +49,7 @@ const songs = () => Object.values(state.songs).filter((s) => liked.has(s.id)); /
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const fmt = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
 
 // --- Views ---
 
@@ -86,6 +90,10 @@ function voteView([a, b]: [Song, Song]) {
       <p class="artist">${esc(s.artist)}</p>
       ${s.eliminated ? '<p class="comeback">Comeback-Duell</p>' : ''}
       ${badges(s)}
+      <div class="seek" data-action="seek">
+        <input type="range" min="0" max="${s.durationMs}" step="1000" value="0" aria-label="Spulen" data-id="${esc(s.id)}" ${canPlay ? '' : 'disabled'}>
+        <span class="time">0:00 / ${fmt(s.durationMs)}</span>
+      </div>
       <button data-action="full" data-id="${esc(s.id)}" ${canPlay ? '' : 'disabled'}>Ganz hören</button>
       ${playlistSelect(s)}
     </article>`;
@@ -147,6 +155,11 @@ function updatePlayUi() {
   }
 }
 
+function showPosition(range: HTMLInputElement, ms: number) {
+  range.value = String(ms);
+  range.nextElementSibling!.textContent = `${fmt(ms)} / ${fmt(Number(range.max))}`;
+}
+
 // --- Playback ---
 
 async function startSong(s: Song, positionMs: number) {
@@ -186,6 +199,17 @@ function stopPlayback() {
   playing = null;
   paused = false;
   updatePlayUi();
+}
+
+// Seeking means you're listening: the automatic switch to the other song stops.
+// On the card that isn't playing, the slider starts that song at the chosen spot.
+async function seekTo(range: HTMLInputElement) {
+  seeking = false;
+  range.blur(); // give ← / → back to voting
+  seq++;
+  const id = range.dataset.id!;
+  if (playing === id) await seek(Number(range.value)).catch((e) => (notice = message(e)));
+  else await startSong(state.songs[id], Number(range.value));
 }
 
 function togglePause() {
@@ -343,9 +367,17 @@ app.addEventListener('click', (e) => {
   else if (action === 'import') app.querySelector<HTMLInputElement>('input[type=file]')!.click();
 });
 
+app.addEventListener('input', (e) => {
+  const el = e.target as HTMLInputElement;
+  if (el.type !== 'range') return;
+  seeking = true;
+  showPosition(el, Number(el.value));
+});
+
 app.addEventListener('change', (e) => {
   const el = e.target as HTMLInputElement | HTMLSelectElement;
   if (el.dataset.action === 'add') void addTo(el.dataset.id!, el.value);
+  else if (el.type === 'range') void seekTo(el as HTMLInputElement);
   else if (el instanceof HTMLInputElement && el.files?.[0]) void importBackup(el.files[0]);
 });
 
@@ -403,6 +435,11 @@ async function start() {
     () => {
       canPlay = true;
       render();
+      setInterval(async () => {
+        const range = app.querySelector<HTMLInputElement>('.card.playing .seek input');
+        const ms = range && !seeking ? await getPosition() : null;
+        if (range && ms !== null && !seeking) showPosition(range, ms);
+      }, 500);
     },
     (e) => {
       notice = message(e);

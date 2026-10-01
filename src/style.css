@@ -104,6 +104,23 @@ button.primary {
   overflow-wrap: anywhere;
 }
 
+.seek {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  cursor: default;
+}
+
+.seek input {
+  flex: 1;
+  min-width: 80px;
+  accent-color: var(--accent);
+}
+
 .comeback {
   color: var(--accent);
   font-weight: 600;
