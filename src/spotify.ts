@@ -14,7 +14,7 @@ type ApiTrack = {
 };
 type ApiPlaylist = { id: string; name: string; snapshot_id: string; collaborative: boolean; owner: { id: string } };
 
-export type Track = Omit<Song, 'rating' | 'games'>;
+export type Track = Omit<Song, 'rating' | 'games' | 'wins' | 'eliminated'>;
 export type Playlist = { id: string; name: string; snapshot: string; trackIds: string[] };
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -29,7 +29,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
       continue;
     }
     if (res.status === 401) logout();
-    if (!res.ok) throw new Error(`Spotify ${init.method ?? 'GET'} ${path} failed: ${res.status} ${await res.text()}`);
+    if (!res.ok) throw new Error(`Spotify ${init.method ?? 'GET'} ${path} fehlgeschlagen: ${res.status} ${await res.text()}`);
     const text = await res.text();
     return text ? JSON.parse(text) : (undefined as T);
   }
@@ -66,6 +66,7 @@ export async function getLikedSongs(): Promise<Track[]> {
 type Player = {
   connect(): Promise<boolean>;
   pause(): Promise<void>;
+  togglePlay(): Promise<void>;
   activateElement(): Promise<void>;
   addListener(event: string, cb: (data: { device_id: string; message: string }) => void): void;
 };
@@ -94,36 +95,45 @@ export function initPlayer(): Promise<void> {
         deviceId = device_id;
         resolve();
       });
-      player.addListener('account_error', () => reject(new Error('Spotify Premium is required to play songs here. You can still vote.')));
-      player.addListener('initialization_error', ({ message }) => reject(new Error(`Player error: ${message}`)));
-      player.addListener('authentication_error', ({ message }) => reject(new Error(`Player error: ${message}`)));
+      player.addListener('account_error', () => reject(new Error('Zum Abspielen braucht es Spotify Premium. Abstimmen geht trotzdem.')));
+      player.addListener('initialization_error', ({ message }) => reject(new Error(`Player-Fehler: ${message}`)));
+      player.addListener('authentication_error', ({ message }) => reject(new Error(`Player-Fehler: ${message}`)));
       void player.connect();
     };
     const script = document.createElement('script');
     script.src = 'https://sdk.scdn.co/spotify-player.js';
-    script.onerror = () => reject(new Error('Could not load the Spotify player (blocked by an ad blocker?). You can still vote.'));
+    script.onerror = () => reject(new Error('Der Spotify-Player konnte nicht geladen werden (Adblocker?). Abstimmen geht trotzdem.'));
     document.head.append(script);
   });
 }
 
-// Starts ~30% into the track so you hear the core of the song, not the intro.
-export async function play(song: Song): Promise<void> {
+export async function play(song: Song, positionMs = 0): Promise<void> {
   void player?.activateElement(); // must run inside the click for browsers that block autoplay
   await api(`/me/player/play?device_id=${deviceId}`, {
     method: 'PUT',
-    body: JSON.stringify({ uris: [song.uri], position_ms: Math.floor(song.durationMs * 0.3) }),
+    body: JSON.stringify({ uris: [song.uri], position_ms: Math.floor(positionMs) }),
   });
 }
 
 export const pause = async (): Promise<void> => player?.pause();
+export const togglePlay = async (): Promise<void> => player?.togglePlay();
 
 // --- Playlists ---
 
-export const createPlaylist = (name: string, description = '') =>
+export const TOP_NAME = 'SongCompare Top 100';
+
+export const createPlaylist = (name: string, description = '', isPublic = false) =>
   api<{ id: string; name: string; snapshot_id: string }>('/me/playlists', {
     method: 'POST',
-    body: JSON.stringify({ name, description, public: false }),
+    body: JSON.stringify({ name, description, public: isPublic }),
   });
+
+// Reuse the top-100 playlist another device already created, so there is only ever one.
+export async function findOrCreateTop100(): Promise<string> {
+  const me = await api<{ id: string }>('/me');
+  const existing = (await all<ApiPlaylist | null>('/me/playlists?limit=50')).find((p) => p?.name === TOP_NAME && p.owner.id === me.id);
+  return existing?.id ?? (await createPlaylist(TOP_NAME, 'Deine Liked Songs, gerankt mit SongCompare.', true)).id;
+}
 
 export const setPlaylistItems = (playlistId: string, uris: string[]) =>
   api(`/playlists/${playlistId}/items`, { method: 'PUT', body: JSON.stringify({ uris }) });
@@ -131,14 +141,14 @@ export const setPlaylistItems = (playlistId: string, uris: string[]) =>
 export const addToPlaylist = (playlistId: string, uri: string) =>
   api<{ snapshot_id: string }>(`/playlists/${playlistId}/items`, { method: 'POST', body: JSON.stringify({ uris: [uri] }) });
 
-// Which song is in which of the user's own (or collaborative) playlists.
+// Which song is in which of the user's own (or collaborative) playlists; the top-100 list is left out.
 // Unchanged playlists (same snapshot_id) are taken from `cache`.
 // ponytail: one request per changed playlist (+1 per 50 songs); fine for dozens of playlists, go lazy per song if users have hundreds.
-export async function getPlaylistIndex(cache: Record<string, Playlist>, skipId?: string): Promise<Record<string, Playlist>> {
+export async function getPlaylistIndex(cache: Record<string, Playlist>): Promise<Record<string, Playlist>> {
   const me = await api<{ id: string }>('/me');
   const index: Record<string, Playlist> = {};
   for (const p of await all<ApiPlaylist | null>('/me/playlists?limit=50')) {
-    if (!p || p.id === skipId || (p.owner.id !== me.id && !p.collaborative)) continue;
+    if (!p || p.name === TOP_NAME || (p.owner.id !== me.id && !p.collaborative)) continue;
     const old = cache[p.id];
     try {
       const trackIds =

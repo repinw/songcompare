@@ -76,17 +76,65 @@ button.primary {
 
 .pair {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
 
 .card {
   background: var(--card);
+  border: 2px solid transparent;
   border-radius: 12px;
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.card:hover {
+  border-color: #3a3a3a;
+}
+
+.card.playing {
+  border-color: var(--accent);
+}
+
+.card h2 {
+  overflow-wrap: anywhere;
+}
+
+.comeback {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.keys {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid #2a2a2a;
+}
+
+footer button {
+  font-size: 0.85rem;
 }
 
 .card img {
@@ -100,15 +148,6 @@ button.primary {
 .card h2,
 .card p {
   margin: 0;
-}
-
-.row {
-  display: flex;
-  gap: 8px;
-}
-
-.row button {
-  flex: 1;
 }
 
 .badges {
@@ -170,10 +209,43 @@ button.primary {
 }
 
 @media (max-width: 600px) {
+  body {
+    padding: 12px;
+  }
+  .pair {
+    gap: 8px;
+  }
+  .card {
+    padding: 8px;
+    gap: 6px;
+  }
+  .card h2 {
+    font-size: 1rem;
+  }
+  .card .artist,
+  .card button,
+  .card select {
+    font-size: 0.8rem;
+  }
+  .card button,
+  .card select {
+    padding: 6px 8px;
+    width: 100%;
+  }
+  .actions button {
+    flex: 1;
+    padding: 12px 8px;
+  }
   .top li {
     flex-wrap: wrap;
   }
   .top select {
     width: 100%;
+  }
+}
+
+@media (hover: none) {
+  .keys {
+    display: none;
   }
 }
