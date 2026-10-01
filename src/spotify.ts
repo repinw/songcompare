@@ -101,6 +101,7 @@ export function initPlayer(): Promise<void> {
     };
     const script = document.createElement('script');
     script.src = 'https://sdk.scdn.co/spotify-player.js';
+    script.onerror = () => reject(new Error('Could not load the Spotify player (blocked by an ad blocker?). You can still vote.'));
     document.head.append(script);
   });
 }

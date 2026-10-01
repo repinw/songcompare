@@ -90,7 +90,8 @@ button.primary {
 }
 
 .card img {
-  width: 100%;
+  width: min(100%, 40vh);
+  align-self: center;
   aspect-ratio: 1;
   object-fit: cover;
   border-radius: 8px;
