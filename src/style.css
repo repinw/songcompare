@@ -1,0 +1,178 @@
+:root {
+  color-scheme: dark;
+  --bg: #121212;
+  --card: #1e1e1e;
+  --text: #f2f2f2;
+  --muted: #a7a7a7;
+  --accent: #1db954;
+  font-family: system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  margin: 0 auto;
+  max-width: 960px;
+  padding: 16px;
+}
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+nav {
+  display: flex;
+  gap: 8px;
+}
+
+button,
+select {
+  font: inherit;
+  color: var(--text);
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 999px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+button.active,
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+  font-weight: 600;
+}
+
+.notice {
+  background: #3a2a00;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.stats,
+.artist {
+  color: var(--muted);
+}
+
+.center {
+  text-align: center;
+  padding: 48px 0;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.card h2,
+.card p {
+  margin: 0;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+}
+
+.row button {
+  flex: 1;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.badges span {
+  background: #2a2a2a;
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: var(--text);
+}
+
+.top {
+  padding: 0;
+  list-style: none;
+  counter-reset: rank;
+}
+
+.top li::before {
+  counter-increment: rank;
+  content: counter(rank);
+  min-width: 2ch;
+  text-align: right;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.top li {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.top img {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+}
+
+.top .info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.top .rating {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 600px) {
+  .top li {
+    flex-wrap: wrap;
+  }
+  .top select {
+    width: 100%;
+  }
+}
