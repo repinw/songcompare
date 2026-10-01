@@ -158,7 +158,7 @@ async function startSong(s: Song, positionMs: number) {
   } catch (e) {
     seq++;
     playing = null;
-    notice = message(e);
+    notice = `„${s.name}“ (${s.uri}): ${message(e)}`;
     render();
   }
 }
@@ -395,7 +395,11 @@ async function start() {
 
   showPair(pickPair(songs(), state.votes));
 
-  initPlayer().then(
+  const showProblem = (msg: string) => {
+    notice = msg;
+    render();
+  };
+  initPlayer(showProblem).then(
     () => {
       canPlay = true;
       render();

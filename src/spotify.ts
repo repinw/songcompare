@@ -83,7 +83,8 @@ declare global {
 let player: Player | null = null;
 let deviceId = '';
 
-export function initPlayer(): Promise<void> {
+// `onProblem` reports player errors that happen after setup (e.g. a track that fails to play).
+export function initPlayer(onProblem: (msg: string) => void): Promise<void> {
   return new Promise((resolve, reject) => {
     window.onSpotifyWebPlaybackSDKReady = () => {
       player = new window.Spotify.Player({
@@ -98,6 +99,9 @@ export function initPlayer(): Promise<void> {
       player.addListener('account_error', () => reject(new Error('Zum Abspielen braucht es Spotify Premium. Abstimmen geht trotzdem.')));
       player.addListener('initialization_error', ({ message }) => reject(new Error(`Player-Fehler: ${message}`)));
       player.addListener('authentication_error', ({ message }) => reject(new Error(`Player-Fehler: ${message}`)));
+      player.addListener('playback_error', ({ message }) => onProblem(`Wiedergabe-Fehler im Player: ${message}`));
+      player.addListener('not_ready', () => onProblem('Der Player im Browser ist offline gegangen. Lade die Seite neu.'));
+      player.addListener('autoplay_failed', () => onProblem('Der Browser blockiert die automatische Wiedergabe. Klick einmal auf „Ganz hören“.'));
       void player.connect();
     };
     const script = document.createElement('script');

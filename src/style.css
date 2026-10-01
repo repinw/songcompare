@@ -194,6 +194,13 @@ footer button {
   width: 48px;
   height: 48px;
   border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* A select is as wide as its longest option; a fixed width keeps long playlist names from squeezing the title. */
+.top select {
+  flex: 0 0 11rem;
+  min-width: 0;
 }
 
 .top .info {
@@ -206,6 +213,8 @@ footer button {
 .top .rating {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 @media (max-width: 600px) {
@@ -240,7 +249,7 @@ footer button {
     flex-wrap: wrap;
   }
   .top select {
-    width: 100%;
+    flex-basis: 100%;
   }
 }
 
