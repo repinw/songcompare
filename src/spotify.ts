@@ -11,10 +11,12 @@ type ApiTrack = {
   duration_ms: number;
   artists: { name: string }[];
   album: { images: { url: string }[] };
+  is_playable?: boolean; // only present when a market is requested
+  linked_from?: { id: string }; // set when Spotify swapped in another, playable version of the track
 };
 type ApiPlaylist = { id: string; name: string; snapshot_id: string; collaborative: boolean; owner: { id: string } };
 
-export type Track = Omit<Song, 'rating' | 'games' | 'wins' | 'eliminated'>;
+export type Track = Omit<Song, 'rating' | 'games' | 'wins' | 'eliminated'> & { playable: boolean };
 export type Playlist = { id: string; name: string; snapshot: string; trackIds: string[] };
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -45,13 +47,17 @@ async function all<T>(path: string): Promise<T[]> {
   return out;
 }
 
+// market=from_token makes Spotify say which songs the user can play in their country
+// (playing one that isn't fails with "403 Restriction violated").
+// A relinked track keeps its original id, so ratings and playlist badges still match; only the uri changes.
 export async function getLikedSongs(): Promise<Track[]> {
-  const items = await all<{ track: ApiTrack | null }>('/me/tracks?limit=50');
+  const items = await all<{ track: ApiTrack | null }>('/me/tracks?limit=50&market=from_token');
   return items.flatMap(({ track: t }) =>
     t?.id
       ? [{
-          id: t.id,
+          id: t.linked_from?.id ?? t.id,
           uri: t.uri,
+          playable: t.is_playable !== false,
           name: t.name,
           artist: t.artists.map((a) => a.name).join(', '),
           image: t.album.images[1]?.url ?? t.album.images[0]?.url ?? '',

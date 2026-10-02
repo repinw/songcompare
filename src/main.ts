@@ -414,8 +414,10 @@ async function start() {
   show('<p>Lade deine Liked Songs…</p>');
   try {
     const tracks = await getLikedSongs();
-    for (const t of tracks) state.songs[t.id] = { ...(state.songs[t.id] ?? { rating: 1500, games: 0, wins: 0 }), ...t };
-    liked = new Set(tracks.map((t) => t.id));
+    for (const { playable, ...t } of tracks) state.songs[t.id] = { ...(state.songs[t.id] ?? { rating: 1500, games: 0, wins: 0 }), ...t };
+    liked = new Set(tracks.filter((t) => t.playable).map((t) => t.id)); // unplayable songs keep their rating but sit out
+    const blocked = tracks.length - liked.size;
+    if (blocked) notice = `${blocked} deiner Liked Songs sind auf Spotify in deinem Land nicht abspielbar und werden ausgelassen.`;
     save();
   } catch (e) {
     notice = message(e);
